@@ -52,6 +52,8 @@ const state = {
   firstFix: false,
   userAccuracy: null,
   accuracyCircle: null,
+  lastCenterAt: 0,
+  lastCenterPos: null,
 };
 
 const LS_KEY = 'waypoint_local_items_v1';
@@ -110,6 +112,17 @@ function initMap(){
   }
 
   state.map.setView([-15.793889, -47.882778], 13); // Brasília como fallback
+
+  // Se o usuário arrastar/zoomar, desabilita seguir para evitar tremedeira
+  const disableFollow = ()=>{
+    if (state.follow){
+      state.follow = false;
+      els.followToggle.checked = false;
+      safeAlert('Seguimento desativado');
+    }
+  };
+  state.map.on('dragstart', disableFollow);
+  state.map.on('zoomstart', disableFollow);
 }
 
 function updateUserIcon(){
@@ -135,9 +148,7 @@ function onPosition(pos){
     }
   }catch{}
 
-  if (state.follow && (isAccurate || !state.firstFix)){
-    state.map.setView(state.userCoords, Math.max(state.map.getZoom()||0, 17));
-  }
+  maybeRecentre(isAccurate);
   if (!state.firstFix && isAccurate){
     state.firstFix = true;
   }
@@ -251,6 +262,8 @@ async function refreshAll(){
   clearWaypointsOnMap();
   list.forEach(wp=>{
     const marker = L.marker([wp.lat, wp.lng]).addTo(state.map);
+    // Toque no marcador inicia navegação imediatamente (além do popup)
+    marker.on('click', ()=> navigateTo(wp));
     marker.bindPopup(`<b>${escapeHtml(wp.name)}</b><br>${escapeHtml(wp.notes||'')}<br/><br/>
       <button id="nav-${wp.id}" class="leaflet-btn">Navegar</button>
       <button id="edit-${wp.id}" class="leaflet-btn">Editar</button>
@@ -277,6 +290,16 @@ let routeAbort = null;
 async function navigateTo(wp){
   if (!state.userCoords){ safeAlert('Sem posição atual'); return; }
   state.activeDest = { lat: wp.lat, lng: wp.lng, name: wp.name };
+  // Ativa seguir ao iniciar navegação
+  state.follow = true;
+  els.followToggle.checked = true;
+  // Reposiciona a câmera no usuário ao iniciar
+  if (state.userCoords){
+    const z = Math.max(state.map.getZoom()||0, 17);
+    state.map.setView(state.userCoords, z);
+    state.lastCenterAt = Date.now();
+    state.lastCenterPos = state.userCoords.slice();
+  }
   await reroute();
 }
 
@@ -310,7 +333,9 @@ function drawRoute(route){
   if (state.routeLayer){ state.map.removeLayer(state.routeLayer); state.routeLayer = null; }
   const coords = route.geometry.coordinates.map(([lng,lat])=>[lat,lng]);
   state.routeLayer = L.polyline(coords, { color:'#22c55e', weight:5, opacity:.9 }).addTo(state.map);
-  state.map.fitBounds(state.routeLayer.getBounds(), { padding:[40,40] });
+  if (!state.follow){
+    state.map.fitBounds(state.routeLayer.getBounds(), { padding:[40,40] });
+  }
   const km = (route.distance/1000).toFixed(2);
   const min = Math.round(route.duration/60);
   els.routeInfo.classList.remove('hidden');
@@ -457,6 +482,30 @@ function formatDuration(s){
   if (m < 60) return `${m} min`;
   const h = Math.floor(m/60); const mm = m%60;
   return `${h} h ${mm} min`;
+}
+
+function maybeRecentre(isAccurate){
+  if (!state.follow) return;
+  const now = Date.now();
+  const minInterval = 1500; // ms
+  const minMove = 12; // meters
+  const zoomOnFirstFix = 17;
+  const currentZoom = state.map.getZoom()||zoomOnFirstFix;
+  if (!state.firstFix && isAccurate){
+    state.map.setView(state.userCoords, Math.max(currentZoom, zoomOnFirstFix));
+    state.lastCenterAt = now; state.lastCenterPos = state.userCoords.slice();
+    return;
+  }
+  if (!state.lastCenterPos){
+    state.map.panTo(state.userCoords, { animate:true, duration:0.5 });
+    state.lastCenterAt = now; state.lastCenterPos = state.userCoords.slice();
+    return;
+  }
+  const moved = haversine(state.userCoords[0], state.userCoords[1], state.lastCenterPos[0], state.lastCenterPos[1]);
+  if (now - state.lastCenterAt >= minInterval && moved >= minMove && isAccurate){
+    state.map.panTo(state.userCoords, { animate:true, duration:0.5 });
+    state.lastCenterAt = now; state.lastCenterPos = state.userCoords.slice();
+  }
 }
 
 // Add/Edit dialog helpers
