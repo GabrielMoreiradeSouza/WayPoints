@@ -1,0 +1,11 @@
+{
+  "name": "WayPoint",
+  "short_name": "WayPoint",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0f172a",
+  "description": "Marque pontos e navegue de volta facilmente.",
+  "icons": []
+}
+

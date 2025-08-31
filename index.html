@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f172a" />
+    <title>WayPoint</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>WayPoint</h1>
+      <div id="authControls" class="auth-controls">
+        <div id="signedOut">
+          <button id="btnShowAuth" class="btn">Entrar / Criar Conta</button>
+        </div>
+        <div id="signedIn" class="hidden">
+          <span id="userEmail" class="user-email"></span>
+          <button id="btnSignOut" class="btn btn-outline">Sair</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div id="map" class="map"></div>
+
+      <div class="top-controls">
+        <label for="modeSelect">Modo:</label>
+        <select id="modeSelect">
+          <option value="walking">A pé</option>
+          <option value="driving">Carro</option>
+          <option value="cycling">Bicicleta</option>
+          <option value="bus">Ônibus</option>
+        </select>
+        <label class="follow-label"><input type="checkbox" id="followToggle" checked /> Seguir</label>
+      </div>
+
+      <div class="fab-container">
+        <button id="btnAddHere" class="fab">+ WayPoint</button>
+        <button id="btnList" class="fab fab-secondary">Meus WPs</button>
+      </div>
+
+      <div id="routeInfo" class="route-info hidden"></div>
+
+      <!-- Painel de Lista -->
+      <section id="panel" class="panel hidden" aria-live="polite">
+        <header class="panel-header">
+          <h2>Meus WayPoints</h2>
+          <button id="btnClosePanel" class="btn btn-icon" aria-label="Fechar">✕</button>
+        </header>
+        <div id="wpList" class="list"></div>
+      </section>
+
+      <!-- Modal Auth -->
+      <dialog id="authDialog" class="dialog">
+        <form method="dialog" class="auth-form" id="authForm">
+          <h3>Entrar ou Criar Conta</h3>
+          <label>Email
+            <input type="email" id="authEmail" required />
+          </label>
+          <label>Senha
+            <input type="password" id="authPass" required minlength="6" />
+          </label>
+          <div class="row">
+            <button id="btnLogin" class="btn" value="login">Entrar</button>
+            <button id="btnRegister" class="btn btn-outline" value="register">Criar Conta</button>
+          </div>
+          <p class="hint">Sem conta? Clique em "Criar Conta"</p>
+        </form>
+      </dialog>
+
+      <!-- Modal Add/Edit WP -->
+      <dialog id="wpDialog" class="dialog">
+        <form method="dialog" class="wp-form" id="wpForm">
+          <h3 id="wpDialogTitle">Novo WayPoint</h3>
+          <label>Nome
+            <input type="text" id="wpName" required maxlength="80" />
+          </label>
+          <label>Observações
+            <textarea id="wpNotes" rows="3" maxlength="500"></textarea>
+          </label>
+          <div class="row">
+            <button id="wpSave" class="btn" value="save">Salvar</button>
+            <button class="btn btn-outline" value="cancel">Cancelar</button>
+          </div>
+        </form>
+      </dialog>
+
+    </main>
+
+    <!-- Leaflet -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Firebase compat builds for browser usage without bundler -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <!-- Config (edit firebase-config.js with your keys) -->
+    <script src="firebase-config.js"></script>
+    <script src="app.js" type="module"></script>
+  </body>
+  </html>
+
